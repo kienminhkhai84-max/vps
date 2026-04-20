@@ -1,4 +1,4 @@
-name: RDP Playit.gg
+name: RDP Localtonet
 
 on:
   workflow_dispatch:
@@ -11,14 +11,15 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 1450 # Max limit 24h
 
-    steps:
+    steps:A
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Setup RDP & Download Playit
+      - name: Setup RDP & Download Localtonet
         run: |
-          # Tải Playit.gg bản mới nhất cho Windows
-          Invoke-WebRequest -Uri "https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64.exe" -OutFile playit.exe
+          # Tải Localtonet bản mới nhất
+          Invoke-WebRequest -Uri "https://localtonet.com/download/localtonet-windows-x64.zip" -OutFile localtonet.zip
+          Expand-Archive localtonet.zip -DestinationPath .
           
           # Cấu hình RDP và tạo User
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
@@ -34,23 +35,23 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services' -Name "fDisableWallpaper" -Value 1 -Type DWord -Force
           powercfg /setactive a1841308-3541-4fab-bc81-f71556f20b4a
           
-          # Lưu credentials lên Repo (Tuỳ chọn)
+          # Lưu credentials lên Repo
           @"
           RDP_USER=DucthengTechDz
           RDP_PASS=W1nd0ws-P4ssw0rd-2025!
-          LƯU Ý: IP và Port anh xem trực tiếp trên Dashboard của Playit.gg nhé!
+          LƯU Ý: IP và Port đại ca xem trực tiếp trên Dashboard của Localtonet nhé!
           "@ | Out-File -FilePath rdp-info.txt -Encoding utf8
           
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add rdp-info.txt
-          git commit -m "Update RDP info (Playit)" || exit 0
+          git commit -m "Update RDP info (Localtonet)" || exit 0
           git push
           
-      - name: Start Playit.gg Tunnel
+      - name: Start Localtonet Tunnel
         run: |
-          # Chạy Playit ngầm với Secret Key từ GitHub Secrets
-          Start-Process -FilePath ".\playit.exe" -ArgumentList "--secret ${{ secrets.PLAYIT_SECRET }}" -NoNewWindow
+          # Chạy Localtonet ngầm với Auth Token cứng
+          Start-Process -FilePath ".\localtonet.exe" -ArgumentList "-t qGBTCY1z9LyhfAxgKvEXkVUsHFjSJiDRp" -NoNewWindow
           
           # Sleep để giữ VPS sống
           Start-Sleep -Seconds 86400
