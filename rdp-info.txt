@@ -1,0 +1,3 @@
+RDP_USER=DucthengTechDz
+RDP_PASS=W1nd0ws-P4ssw0rd-2025!
+LƯU Ý: IP và Port anh xem trực tiếp trên Dashboard của Playit.gg nhé!
