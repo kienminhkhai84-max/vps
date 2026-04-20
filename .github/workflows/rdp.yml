@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 1450 # Max limit 24h
 
-    steps:A
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
         
