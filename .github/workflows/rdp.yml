@@ -64,8 +64,11 @@ jobs:
           
       - name: Start Localtonet Tunnel
         run: |
-          # Chạy Localtonet ngầm với Auth Token cứng
-          Start-Process -FilePath ".\localtonet.exe" -ArgumentList "-t qGBTCY1z9LyhfAxgKvEXkVUsHFjSJiDRp" -NoNewWindow
+          # Ghi lệnh ra file .bat để tránh lỗi PowerShell parse sai cờ -t
+          echo "localtonet.exe -t qGBTCY1z9LyhfAxgKvEXkVUsHFjSJiDRp" > run_tunnel.bat
           
-          # Sleep để giữ VPS sống
+          # Chạy file .bat ngầm
+          Start-Process -FilePath "run_tunnel.bat" -WindowStyle Hidden
+          
+          # Sleep để giữ VPS sống 24h
           Start-Sleep -Seconds 86400
