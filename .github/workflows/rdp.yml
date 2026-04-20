@@ -17,8 +17,22 @@ jobs:
         
       - name: Setup RDP & Download Localtonet
         run: |
-          # Tải Localtonet bản mới nhất
-          Invoke-WebRequest -Uri "https://localtonet.com/download/localtonet-windows-x64.zip" -OutFile localtonet.zip
+          # Tự động thử các link tải Localtonet mới nhất để tránh lỗi 404
+          $urls = @(
+              "https://localtonet.com/download/localtonet-win-64.zip",
+              "https://localtonet.com/download/localtonet-windows-64.zip",
+              "https://localtonet.com/download/localtonet-windows.zip"
+          )
+          foreach ($url in $urls) {
+              try {
+                  Write-Host "Đang thử tải từ: $url"
+                  Invoke-WebRequest -Uri $url -OutFile localtonet.zip -UseBasicParsing
+                  if (Test-Path localtonet.zip) { break }
+              } catch {
+                  Write-Host "Link $url bị lỗi 404, thử link khác..."
+              }
+          }
+          
           Expand-Archive localtonet.zip -DestinationPath .
           
           # Cấu hình RDP và tạo User
