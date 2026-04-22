@@ -33,38 +33,14 @@ jobs:
           
       - name: Install Zrok, Start Tunnel & Push Credentials
         run: |
-          Write-Host "Đang lấy link tải Zrok cho Windows..."
-          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/openziti/zrok/releases/latest"
-          $asset = $release.assets | Where-Object { $_.name -match "windows_amd64" } | Select-Object -First 1
-          
-          # Tải file về với TÊN GỐC (có đuôi .tar.gz hoặc .zip) để tránh lỗi giải nén
-          $fileName = $asset.name
-          Write-Host "Đang tải file: $fileName"
-          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $fileName
-          
-          Write-Host "Đang giải nén..."
-          if ($fileName -match "\.tar\.gz$") {
-              tar -xf $fileName
-          } elseif ($fileName -match "\.zip$") {
-              Expand-Archive -Path $fileName -DestinationPath . -Force
-          }
-          
-          # Tìm file zrok.exe sau khi giải nén
-          $zrokExe = Get-ChildItem -Recurse -Filter "zrok.exe" | Select-Object -First 1
-          if (-not $zrokExe) {
-              Write-Error "Không tìm thấy zrok.exe! Có lỗi xảy ra trong quá trình tải hoặc giải nén."
-              exit 1
-          }
-          
-          Write-Host "Đã tìm thấy Zrok tại: $($zrokExe.FullName)"
-          # Đưa zrok.exe ra thư mục gốc để dễ gọi lệnh
-          Copy-Item $zrokExe.FullName -Destination ".\zrok.exe" -Force
+          Write-Host "Đang tải trực tiếp file zrok2.exe..."
+          Invoke-WebRequest -Uri "https://pub-794f7efd7d794058ab4ccb550f0e2d09.r2.dev/zrok2.exe" -OutFile "zrok2.exe"
           
           Write-Host "Đang kích hoạt môi trường Zrok bằng Token..."
-          .\zrok.exe enable FUvcQMZdEKaS
+          .\zrok2.exe enable FUvcQMZdEKaS
           
           Write-Host "Khởi chạy Zrok TCP Tunnel cho Port 3389..."
-          echo ".\zrok.exe share public localhost:3389 --backend-mode tcp" > run_zrok.bat
+          echo ".\zrok2.exe share public localhost:3389 --backend-mode tcp" > run_zrok.bat
           Start-Process -FilePath "run_zrok.bat" -WindowStyle Hidden
           
           # Lưu credentials lên Repo
