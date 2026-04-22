@@ -1,4 +1,4 @@
-name: RDP Zrok.io Tunnel
+name: RDP Bore Tunnel (Self-Hosted Mì Ăn Liền)
 
 on:
   workflow_dispatch:
@@ -17,66 +17,64 @@ jobs:
         
       - name: Setup RDP & Create User
         run: |
-          # Bật RDP và tạo User
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           New-LocalUser "DucthengTechDz" -Password (ConvertTo-SecureString "W1nd0ws-P4ssw0rd-2025!" -AsPlainText -Force)
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "DucthengTechDz"
           Add-LocalGroupMember -Group "Administrators" -Member "DucthengTechDz"
           
-          # Tối ưu hóa đồ họa RDP
+          # Tối ưu đồ họa
           Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services' -Name "fEnableVirtualizedGraphics" -Value 1 -Type DWord -Force
           Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services' -Name "AVCHardwareEncodePreferred" -Value 1 -Type DWord -Force
-          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services' -Name "MinFrameRate" -Value 120 -Type DWord -Force
-          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services' -Name "fDisableWallpaper" -Value 1 -Type DWord -Force
           powercfg /setactive a1841308-3541-4fab-bc81-f71556f20b4a
           
-      - name: Install Zrok, Start Tunnel & Auto-Fetch Address
+      - name: Install & Start Bore Tunnel
         run: |
-          Write-Host "Đang tải trực tiếp file zrok2.exe..."
-          Invoke-WebRequest -Uri "https://pub-794f7efd7d794058ab4ccb550f0e2d09.r2.dev/zrok2.exe" -OutFile "zrok2.exe"
+          Write-Host "Đang tải Bore tự động..."
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/ekzhang/bore/releases/latest"
+          $asset = $release.assets | Where-Object { $_.name -match "x86_64-pc-windows" } | Select-Object -First 1
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "bore.zip"
+          Expand-Archive -Path bore.zip -DestinationPath . -Force
           
-          Write-Host "Đang kích hoạt môi trường Zrok bằng Token..."
-          .\zrok2.exe enable FUvcQMZdEKaS
+          Write-Host "Khởi chạy Bore Client ngầm..."
+          # ĐẠI CA THAY IP WINDOWS SERVER CỦA ĐẠI CA VÀO DÒNG BÊN DƯỚI NHÉ!!!
+          $SERVER_IP = "34.46.25.187"
           
-          Write-Host "Khởi chạy Zrok TCP Tunnel và ghi log xuất ra..."
-          # Khởi chạy ngầm Zrok và chuyển hướng output vào file text
-          Start-Process -FilePath ".\zrok2.exe" -ArgumentList "share public localhost:3389 --backend-mode tcp" -WindowStyle Hidden -RedirectStandardOutput "zrok_log.txt" -RedirectStandardError "zrok_err.txt"
+          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to $SERVER_IP" -WindowStyle Hidden -RedirectStandardOutput "bore_log.txt" -RedirectStandardError "bore_err.txt"
           
-          Write-Host "Đang chờ Zrok khởi tạo địa chỉ Public (15s)..."
-          Start-Sleep -Seconds 15
+          Write-Host "Đang chờ kết nối tới Server (10s)..."
+          Start-Sleep -Seconds 10
           
-          # Đọc file log để trích xuất URL và Port
-          $zrokLog = Get-Content "zrok_log.txt" -Raw
-          $regex = "(tcp:\/\/[a-zA-Z0-9.-]+:\d+)"
-          $zrokAddress = "Không lấy được URL, vui lòng kiểm tra Dashboard."
+          # Đọc log để bóc tách cổng Public Port
+          $boreLog = Get-Content "bore_log.txt" -Raw
+          $regex = "listening at ([a-zA-Z0-9.-]+:\d+)"
+          $rdpAddress = "Chưa lấy được IP. Check log server của đại ca nhé!"
           
-          if ($zrokLog -match $regex) {
-              $zrokAddress = $matches[3]
-              Write-Host "Đã bắt được địa chỉ Zrok: $zrokAddress"
+          if ($boreLog -match $regex) {
+              $rdpAddress = $matches[6]
+              Write-Host "Thành công! Public Address: $rdpAddress"
           } else {
-              Write-Host "Không tìm thấy địa chỉ trong log, in thử nội dung log:"
-              Write-Host $zrokLog
+              Write-Host "Log output:"
+              Write-Host $boreLog
           }
           
-          # Lưu credentials và địa chỉ IP:Port lên Repo
+          # Lưu thông tin kết nối
           @"
           RDP_USER=DucthengTechDz
           RDP_PASS=W1nd0ws-P4ssw0rd-2025!
-          RDP_ADDRESS=$zrokAddress
+          RDP_ADDRESS=$rdpAddress
+          LƯU Ý: Hàng Self-Hosted siêu mượt! Mở phần mềm Remote Desktop và dán đúng cái RDP_ADDRESS vào là chạy!
           "@ | Out-File -FilePath rdp-info.txt -Encoding utf8
           
-          # Xử lý Git thông minh cho PowerShell
+          # Đẩy file lên Github
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add rdp-info.txt
           
           $changes = git status --porcelain
           if ($changes) {
-              git commit -m "Update RDP info (Auto-Fetch Zrok URL & Port)"
+              git commit -m "Update RDP info (Bore Self-Hosted)"
               git push
-          } else {
-              Write-Host "File rdp-info.txt không có thay đổi mới, bỏ qua bước commit."
           }
           
       - name: Keep VPS Alive (24h)
