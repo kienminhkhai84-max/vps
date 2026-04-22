@@ -31,7 +31,7 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services' -Name "fDisableWallpaper" -Value 1 -Type DWord -Force
           powercfg /setactive a1841308-3541-4fab-bc81-f71556f20b4a
           
-      - name: Install Zrok, Start Tunnel & Push Credentials
+      - name: Install Zrok, Start Tunnel & Auto-Fetch Address
         run: |
           Write-Host "Đang tải trực tiếp file zrok2.exe..."
           Invoke-WebRequest -Uri "https://pub-794f7efd7d794058ab4ccb550f0e2d09.r2.dev/zrok2.exe" -OutFile "zrok2.exe"
@@ -39,15 +39,31 @@ jobs:
           Write-Host "Đang kích hoạt môi trường Zrok bằng Token..."
           .\zrok2.exe enable FUvcQMZdEKaS
           
-          Write-Host "Khởi chạy Zrok TCP Tunnel cho Port 3389..."
-          echo ".\zrok2.exe share public localhost:3389 --backend-mode tcp" > run_zrok.bat
-          Start-Process -FilePath "run_zrok.bat" -WindowStyle Hidden
+          Write-Host "Khởi chạy Zrok TCP Tunnel và ghi log xuất ra..."
+          # Khởi chạy ngầm Zrok và chuyển hướng output vào file text
+          Start-Process -FilePath ".\zrok2.exe" -ArgumentList "share public localhost:3389 --backend-mode tcp" -WindowStyle Hidden -RedirectStandardOutput "zrok_log.txt" -RedirectStandardError "zrok_err.txt"
           
-          # Lưu credentials lên Repo
+          Write-Host "Đang chờ Zrok khởi tạo địa chỉ Public (15s)..."
+          Start-Sleep -Seconds 15
+          
+          # Đọc file log để trích xuất URL và Port
+          $zrokLog = Get-Content "zrok_log.txt" -Raw
+          $regex = "(tcp:\/\/[a-zA-Z0-9.-]+:\d+)"
+          $zrokAddress = "Không lấy được URL, vui lòng kiểm tra Dashboard."
+          
+          if ($zrokLog -match $regex) {
+              $zrokAddress = $matches[3]
+              Write-Host "Đã bắt được địa chỉ Zrok: $zrokAddress"
+          } else {
+              Write-Host "Không tìm thấy địa chỉ trong log, in thử nội dung log:"
+              Write-Host $zrokLog
+          }
+          
+          # Lưu credentials và địa chỉ IP:Port lên Repo
           @"
           RDP_USER=DucthengTechDz
           RDP_PASS=W1nd0ws-P4ssw0rd-2025!
-          LƯU Ý: Máy ảo đang chạy và Zrok đã được kích hoạt. URL và Port để kết nối đại ca xem trực tiếp trên Dashboard của Zrok (https://zrok.io) nhé!
+          RDP_ADDRESS=$zrokAddress
           "@ | Out-File -FilePath rdp-info.txt -Encoding utf8
           
           # Xử lý Git thông minh cho PowerShell
@@ -57,10 +73,10 @@ jobs:
           
           $changes = git status --porcelain
           if ($changes) {
-              git commit -m "Update RDP info (Zrok Tunnel)"
+              git commit -m "Update RDP info (Auto-Fetch Zrok URL & Port)"
               git push
           } else {
-              Write-Host "File rdp-info.txt không có thay đổi mới, bỏ qua bước commit để tránh lỗi."
+              Write-Host "File rdp-info.txt không có thay đổi mới, bỏ qua bước commit."
           }
           
       - name: Keep VPS Alive (24h)
