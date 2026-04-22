@@ -1,3 +1,3 @@
 RDP_USER=DucthengTechDz
 RDP_PASS=W1nd0ws-P4ssw0rd-2025!
-LƯU Ý: IP và Port đại ca xem trực tiếp trên Dashboard của Localtonet nhé!
+LƯU Ý: Máy ảo đang chạy và Zrok đã được kích hoạt. URL và Port để kết nối đại ca xem trực tiếp trên Dashboard của Zrok (https://zrok.io) nhé!
