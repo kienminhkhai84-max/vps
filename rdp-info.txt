@@ -1,3 +1,4 @@
 RDP_USER=DucthengTechDz
 RDP_PASS=W1nd0ws-P4ssw0rd-2025!
-RDP_ADDRESS=Không lấy được URL, vui lòng kiểm tra Dashboard.
+RDP_ADDRESS=Chưa lấy được IP. Check log server của đại ca nhé!
+LƯU Ý: Hàng Self-Hosted siêu mượt! Mở phần mềm Remote Desktop và dán đúng cái RDP_ADDRESS vào là chạy!
