@@ -1,4 +1,9 @@
-RDP_USER=DucthengTechDz
-RDP_PASS=W1nd0ws-P4ssw0rd-2025!
-RDP_ADDRESS=Chưa lấy được IP. Check log server của đại ca nhé!
-LƯU Ý: Hàng Self-Hosted siêu mượt! Mở phần mềm Remote Desktop và dán đúng cái RDP_ADDRESS vào là chạy!
+==============================================
+THÔNG TIN KẾT NỐI RDP (BORE TUNNEL)
+==============================================
+IP/ADDRESS: 34.46.25.187:15217
+USERNAME  : DucthengTechDz
+PASSWORD  : W1nd0ws-P4ssw0rd-2025!
+==============================================
+Lưu ý: Copy dòng IP/ADDRESS dán vào app Remote Desktop Connection.
+Hàng Self-Hosted cực mượt!
