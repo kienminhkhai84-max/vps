@@ -1,34 +1,4 @@
-name: RDP Bore Tunnel (Self-Hosted Mì Ăn Liền)
-
-on:
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  build:
-    runs-on: windows-latest
-    timeout-minutes: 1450 # Cắm VPS tối đa 24h
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        
-      - name: Setup RDP & Create User
-        run: |
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          New-LocalUser "DucthengTechDz" -Password (ConvertTo-SecureString "W1nd0ws-P4ssw0rd-2025!" -AsPlainText -Force)
-          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "DucthengTechDz"
-          Add-LocalGroupMember -Group "Administrators" -Member "DucthengTechDz"
-          
-          # Tối ưu đồ họa
-          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services' -Name "fEnableVirtualizedGraphics" -Value 1 -Type DWord -Force
-          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services' -Name "AVCHardwareEncodePreferred" -Value 1 -Type DWord -Force
-          powercfg /setactive a1841308-3541-4fab-bc81-f71556f20b4a
-          
-      - name: Install & Start Bore Tunnel
+- name: Install & Start Bore Tunnel
         run: |
           Write-Host "Đang tải Bore tự động..."
           $release = Invoke-RestMethod -Uri "https://api.github.com/repos/ekzhang/bore/releases/latest"
@@ -37,46 +7,38 @@ jobs:
           Expand-Archive -Path bore.zip -DestinationPath . -Force
           
           Write-Host "Khởi chạy Bore Client ngầm..."
-          # ĐẠI CA THAY IP WINDOWS SERVER CỦA ĐẠI CA VÀO DÒNG BÊN DƯỚI NHÉ!!!
           $SERVER_IP = "34.46.25.187"
           
+          # Chạy và đẩy log ra file
           Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to $SERVER_IP" -WindowStyle Hidden -RedirectStandardOutput "bore_log.txt" -RedirectStandardError "bore_err.txt"
           
-          Write-Host "Đang chờ kết nối tới Server (10s)..."
-          Start-Sleep -Seconds 10
+          Write-Host "Đang chờ Bore thiết lập kết nối (20s)..."
+          Start-Sleep -Seconds 20
           
-          # Đọc log để bóc tách cổng Public Port
           $boreLog = Get-Content "bore_log.txt" -Raw
-          $regex = "listening at ([a-zA-Z0-9.-]+:\d+)"
-          $rdpAddress = "Chưa lấy được IP. Check log server của đại ca nhé!"
+          # Regex chuẩn để bắt dạng: listening at 34.46.25.187:12345
+          $regex = "listening at ([\d\.]+:[\d]+)"
+          $rdpAddress = "Chưa lấy được IP. Check log server hoặc firewall GCP nhé đại ca!"
           
           if ($boreLog -match $regex) {
-              $rdpAddress = $matches[6]
-              Write-Host "Thành công! Public Address: $rdpAddress"
+              $rdpAddress = $matches[1]
+              Write-Host "===> THÀNH CÔNG! ĐỊA CHỈ RDP: $rdpAddress" -ForegroundColor Green
           } else {
-              Write-Host "Log output:"
-              Write-Host $boreLog
+              Write-Host "Log hiện tại của Bore:"
+              Write-Host $boreLog -ForegroundColor Yellow
           }
           
-          # Lưu thông tin kết nối
+          # Lưu file info
           @"
           RDP_USER=DucthengTechDz
           RDP_PASS=W1nd0ws-P4ssw0rd-2025!
           RDP_ADDRESS=$rdpAddress
-          LƯU Ý: Hàng Self-Hosted siêu mượt! Mở phần mềm Remote Desktop và dán đúng cái RDP_ADDRESS vào là chạy!
+          LƯU Ý: Copy địa chỉ trên vào Remote Desktop Connection là xong ạ!
           "@ | Out-File -FilePath rdp-info.txt -Encoding utf8
           
-          # Đẩy file lên Github
+          # Commit kết quả
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add rdp-info.txt
-          
-          $changes = git status --porcelain
-          if ($changes) {
-              git commit -m "Update RDP info (Bore Self-Hosted)"
-              git push
-          }
-          
-      - name: Keep VPS Alive (24h)
-        run: |
-          Start-Sleep -Seconds 86400
+          git commit -m "Update RDP info: $rdpAddress"
+          git push
